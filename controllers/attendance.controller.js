@@ -14,6 +14,11 @@ exports.getAll = async (req, res) => {
       if (!req.query.projectId) where.projectId = projects.map(p => p.id);
     }
 
+    if (req.role === 'technicien') {
+      const emp = await db.Employee.findOne({ where: { matricule: req.user.matricule } });
+      where.employeeId = emp ? emp.id : -1;
+    }
+
     const records = await db.Attendance.findAll({
       where,
       include: [
@@ -36,30 +41,62 @@ exports.bulkCreate = async (req, res) => {
     }
 
     const created_records = [];
+    // Résoudre l'ID employé correspondant à l'utilisateur connecté (si technicien)
+    let requesterEmployeeId = null;
+    if (req.role === 'technicien') {
+      const emp = await db.Employee.findOne({ where: { matricule: req.user.matricule } });
+      if (emp) requesterEmployeeId = emp.id;
+    }
+
     for (const r of records) {
       if (!r.employeeId) continue;
 
+      // Sécurité : un technicien ne peut pointer que pour lui-même
+      if (req.role === 'technicien' && Number(r.employeeId) !== Number(requesterEmployeeId)) {
+        continue; 
+      }
+
       // Calculer les minutes de retard (heure standard 07h30)
       let lateMinutes = 0;
-      if (r.arrivalTime && r.status === 'Présent') {
+      const statusToUse = r.status || 'Présent';
+      if (r.arrivalTime && statusToUse === 'Présent') {
         const [h, m] = r.arrivalTime.split(':').map(Number);
         const arrivalMins = h * 60 + m;
         const standardMins = 7 * 60 + 30;
         if (arrivalMins > standardMins) lateMinutes = arrivalMins - standardMins;
-        if (lateMinutes > 0) r.status = 'Retard';
       }
 
-      // Upsert : un seul pointage par employé par jour
-      const [record] = await db.Attendance.upsert({
-        employeeId: r.employeeId, projectId, date,
-        arrivalTime: r.arrivalTime || null,
-        departureTime: r.departureTime || null,
-        status: r.status || 'Présent',
-        lateMinutes,
-        note: r.note || null,
-        recordedBy: req.user.id,
-      }, { returning: true });
-      created_records.push(record);
+      // Recherche d'un enregistrement existant pour cet employé à cette date
+      let attendanceRecord = await db.Attendance.findOne({
+        where: { employeeId: r.employeeId, date }
+      });
+
+      if (attendanceRecord) {
+        // Mise à jour : on ne remplace que ce qui est envoyé
+        await attendanceRecord.update({
+          projectId: projectId, // Au cas où le chantier a changé
+          arrivalTime: r.arrivalTime || attendanceRecord.arrivalTime,
+          departureTime: r.departureTime || attendanceRecord.departureTime,
+          status: lateMinutes > 0 ? 'Retard' : (r.status || attendanceRecord.status),
+          lateMinutes: lateMinutes || attendanceRecord.lateMinutes,
+          note: r.note || attendanceRecord.note,
+          recordedBy: req.user.id,
+        });
+      } else {
+        // Création
+        attendanceRecord = await db.Attendance.create({
+          employeeId: r.employeeId,
+          projectId,
+          date,
+          arrivalTime: r.arrivalTime || null,
+          departureTime: r.departureTime || null,
+          status: lateMinutes > 0 ? 'Retard' : (r.status || 'Présent'),
+          lateMinutes,
+          note: r.note || null,
+          recordedBy: req.user.id,
+        });
+      }
+      created_records.push(attendanceRecord);
     }
 
     await db.Log.create({
@@ -77,6 +114,14 @@ exports.bulkCreate = async (req, res) => {
 exports.getHistory = async (req, res) => {
   try {
     const { employeeId } = req.params;
+
+    if (req.role === 'technicien') {
+      const emp = await db.Employee.findOne({ where: { matricule: req.user.matricule } });
+      if (!emp || Number(employeeId) !== Number(emp.id)) {
+        return forbidden(res, 'Vous ne pouvez consulter que votre propre historique');
+      }
+    }
+
     const records = await db.Attendance.findAll({
       where: { employeeId },
       include: [{ model: db.Project, as: 'project', attributes: ['id', 'name'] }],

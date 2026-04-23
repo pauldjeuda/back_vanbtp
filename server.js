@@ -70,7 +70,7 @@ const start = async () => {
     await sequelize.authenticate();
     console.log('✅ Connexion MySQL établie');
 
-    await sequelize.sync({ alter: true });
+    await sequelize.sync({ alter: false });
     console.log('✅ Modèles Sequelize synchronisés');
 
     app.listen(PORT, () => {

@@ -43,18 +43,44 @@ exports.create = async (req, res) => {
     if (!matricule || !name || !role) {
       return badRequest(res, 'Matricule, nom et rôle sont obligatoires');
     }
-    const employee = await db.Employee.create({ matricule, name, role, contract, projectId, ...req.body });
-    if (projectId) {
-      await db.EmployeeAssignment.create({
-        employeeId: employee.id, projectId, startDate: new Date(),
+    
+    // Vérifier si l'employé existe déjà
+    const existingEmployee = await db.Employee.findOne({ where: { matricule } });
+    
+    let employee;
+    if (existingEmployee) {
+      // Mettre à jour l'employé existant
+      await existingEmployee.update({ name, role, contract, projectId, ...req.body });
+      employee = existingEmployee;
+      
+      // Créer une affectation si nécessaire
+      if (projectId && !existingEmployee.projectId) {
+        await db.EmployeeAssignment.create({
+          employeeId: employee.id, projectId, startDate: new Date(),
+        });
+      }
+      
+      await db.Log.create({
+        action: `Mise à jour de l'employé : ${name}`,
+        module: 'Ressources', entityType: 'Employee', entityId: employee.id,
+        userId: req.user.id, userRole: req.role, userMatricule: req.user.matricule,
       });
+      return success(res, employee, 'Employé mis à jour avec succès');
+    } else {
+      // Créer un nouvel employé
+      employee = await db.Employee.create({ matricule, name, role, contract, projectId, ...req.body });
+      if (projectId) {
+        await db.EmployeeAssignment.create({
+          employeeId: employee.id, projectId, startDate: new Date(),
+        });
+      }
+      await db.Log.create({
+        action: `Ajout de l'employé : ${name}`,
+        module: 'Ressources', entityType: 'Employee', entityId: employee.id,
+        userId: req.user.id, userRole: req.role, userMatricule: req.user.matricule,
+      });
+      return created(res, employee, 'Employé créé avec succès');
     }
-    await db.Log.create({
-      action: `Ajout de l'employé : ${name}`,
-      module: 'Ressources', entityType: 'Employee', entityId: employee.id,
-      userId: req.user.id, userRole: req.role, userMatricule: req.user.matricule,
-    });
-    return created(res, employee, 'Employé créé avec succès');
   } catch (err) {
     return error(res, 'Erreur lors de la création', 500, err.message);
   }

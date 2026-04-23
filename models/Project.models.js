@@ -12,7 +12,7 @@ const Project = sequelize.define('Project', {
     defaultValue: 'préparation',
   },
   category: {
-    type: DataTypes.ENUM('Bâtiment','Voirie', 'Autre'),
+    type: DataTypes.STRING(100),
     defaultValue: 'Autre',
   },
   subCategory: {
