@@ -34,6 +34,7 @@ exports.create = async (req, res) => {
       await Promise.all(req.body.tasks.map(t =>
         db.SubcontractTask.create({
           title: t.title,
+          cost: Number(t.cost || 0),
           lotNumber: t.lotNumber || 1,
           lotName: t.lotName || 'Lot 1',
           subcontractId: sub.id,
@@ -77,6 +78,7 @@ exports.update = async (req, res) => {
         const taskData = {
           title: t.title,
           completed: !!t.completed,
+          cost: Number(t.cost || 0),
           lotNumber: t.lotNumber || 1,
           lotName: t.lotName || 'Lot 1'
         };
