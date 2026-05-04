@@ -113,7 +113,7 @@ exports.deleteSale = async (req, res) => {
 // --- Tableau de bord Production ---
 exports.getDashboard = async (req, res) => {
   try {
-    const types = ['Parpaing', 'Pavé', 'Bordure', 'Ourdi', 'Autre'];
+    const types = ['Parpaing', 'Pavé', 'Bordure', 'Hourdi', 'Autre'];
     const entries = await db.ProductionEntry.findAll();
     const sales   = await db.ProductionSale.findAll();
 

@@ -3,10 +3,6 @@ const sequelize = require('../config/db');
 
 const DailyReport = sequelize.define('DailyReport', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  weather: {
-    type: DataTypes.ENUM('Ensoleillé', 'Nuageux', 'Pluvieux', 'Orageux'),
-    defaultValue: 'Ensoleillé',
-  },
   status: {
     type: DataTypes.ENUM('Brouillon', 'Soumis', 'Validé'),
     defaultValue: 'Brouillon',
@@ -18,6 +14,7 @@ const DailyReport = sequelize.define('DailyReport', {
   reportDate: { type: DataTypes.DATEONLY, allowNull: false },
   projectId: { type: DataTypes.INTEGER, allowNull: false },
   reporterId: { type: DataTypes.INTEGER },
+  reporter: { type: DataTypes.STRING },
 }, { tableName: 'daily_reports', timestamps: true });
 
 module.exports = DailyReport;

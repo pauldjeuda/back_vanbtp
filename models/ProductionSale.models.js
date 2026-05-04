@@ -4,7 +4,7 @@ const sequelize = require('../config/db');
 const ProductionSale = sequelize.define('ProductionSale', {
   id:          { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   productType: {
-    type: DataTypes.ENUM('Parpaing', 'Pavé', 'Bordure', 'Ourdi', 'Autre'),
+    type: DataTypes.ENUM('Parpaing', 'Pavé', 'Bordure', 'Hourdi', 'Autre'),
     allowNull: false,
   },
   productLabel:{ type: DataTypes.STRING(200) },

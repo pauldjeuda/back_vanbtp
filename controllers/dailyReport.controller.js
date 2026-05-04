@@ -32,7 +32,9 @@ exports.create = async (req, res) => {
       return badRequest(res, 'Projet et date du rapport sont obligatoires');
     }
     const report = await db.DailyReport.create({
-      ...req.body, reporterId: req.user.id,
+      ...req.body, 
+      reporterId: req.user.id,
+      reporter: req.body.reporter || req.user.name || req.user.email || 'Utilisateur',
     });
     await db.Log.create({
       action: `Rapport journalier créé pour le ${reportDate}`,
