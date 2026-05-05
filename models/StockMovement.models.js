@@ -10,7 +10,7 @@ const StockMovement = sequelize.define('StockMovement', {
   movementDate: { type: DataTypes.DATEONLY, allowNull: false },
   // Magasin source / destination
   warehouse: { type: DataTypes.STRING(100), defaultValue: 'Magasin Principal' },
-  projectId: { type: DataTypes.INTEGER, allowNull: false },
+  projectId: { type: DataTypes.INTEGER, allowNull: true },
   createdBy: { type: DataTypes.INTEGER },
   note: { type: DataTypes.TEXT },
 }, { tableName: 'stock_movements', timestamps: true });
